@@ -1,0 +1,307 @@
+﻿@page "/"
+
+@using AzureCustomRoleDelegator.Data
+@using Microsoft.Identity.Web
+
+
+
+
+<div class="row">
+    <div class="col"><h3>Assignment Wizard</h3></div>
+    <div class="col">
+        <select class="form-select w-50 float-end">
+            @foreach (var s in subscriptions)
+            {
+                @if (s.SubscriptionId == currentSub?.SubscriptionId)
+                {
+                    <option value="@s.SubscriptionId">@s.DisplayName</option>
+                }
+                else
+                {
+                    <option value="@s.SubscriptionId" selected>@s.DisplayName</option>
+                }
+            }
+        </select>
+    </div>
+</div>
+<div class="row"><div class="col"><hr /></div></div>
+<div class="row"><div class="col">
+        @if (submitSuccess.HasValue && submitSuccess == true)
+        {
+            <div class="alert alert-success">'@currentRole.Properties.RoleName' granted to '@currentIdentity.DisplayName' over '@currentResource.Name'. <a style="cursor: pointer" class="text-decoration-underline" @onclick="Reset">Reset Form</a></div>
+        } 
+        else if (submitSuccess.HasValue && submitSuccess == false)
+        {
+            <div class="alert alert-warning">Failed to grant '@currentRole.Properties.RoleName' to '@currentIdentity.DisplayName' over '@currentResource.Name'. Reason: @reasonMessage <a style="cursor: pointer" class="text-decoration-underline" @onclick="Reset">Reset Form</a></div>
+        }
+    </div></div>
+<div class="row">
+    <div class="col-4">
+        <h5>Identities</h5>
+        <div class="row">
+            <div class="col-10">
+                <input class="form-control" placeholder="Search by Identity Name" @bind="identitySearchTerm" />
+            </div>
+            <div class="col-2">
+                <button class="btn btn-primary" @onclick=OnIdentitySearch><span class="oi oi-magnifying-glass" /></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <hr />
+                @if (identitiesLoading)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                <ul class="list-group">
+                    @if (identities.Count() == 0 && !identitiesLoading && !string.IsNullOrEmpty(identitySearchTerm))
+                    {
+                        <em class="text-center text-muted">No identities found that match filter '@identitySearchTerm'</em>
+                    }
+                    else if (string.IsNullOrEmpty(identitySearchTerm))
+                    {
+                        <em class="text-center text-muted">Search for identities above</em>
+                    }
+                    else if (identities.Count() > 0)
+                    {
+                        @foreach (var ide in identities)
+                        {
+                            var isSelected = currentIdentity != null && ide.Id == currentIdentity.Id;
+                            var _ide = ide;
+                            <li class="list-group-item list-group-item-action @(isSelected ? "list-group-item-info" : "")" @onclick="() => currentIdentity = _ide">
+                                <b>@ide.DisplayName</b>
+                                <span class="badge bg-light text-secondary rounded-pill float-end">@ide.ServicePrincipalType</span>
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-4">
+        <h5>Resource</h5>
+        <div class="row">
+            <div class="col-10">
+                <input class="form-control" placeholder="Search by Resource Name" @bind=resourceSearchTerm/>
+            </div>
+            <div class="col-2">
+                <button class="btn btn-primary" @onclick=OnResourceSearch><span class="oi oi-magnifying-glass"/></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <hr />
+                @if (resourcesLoading)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                <ul class="list-group">
+                    @foreach (var resource in resources) {
+                        var r = resource;
+                        var isSelected = currentResource != null && r.Id == currentResource.Id;
+                        <li class="list-group-item list-group-item-action @(isSelected ? "list-group-item-info" : "")" @onclick="() => OnResourceSelected(r)">                             
+                            <b>@resource.Name</b>
+                            <span class="badge bg-light text-secondary rounded-pill float-end">@resource.Type.Split('/').First().Split('.').Last()</span>
+                        </li>
+                    }
+                    @if (resources.Count() == 0 && !resourcesLoading)
+                    {
+                        <em class="text-center text-muted">Use the filter above to locate a resource</em>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-4">
+        <h5>Roles</h5>
+        <div class="row">
+            <div class="col-10">
+                @if (currentResource != null)
+                {
+                    <input class="form-control" placeholder="Search by Role Name" @bind="roleSearchTerm" @bind:event="oninput" />
+                }
+                else
+                {
+                    <input class="form-control" placeholder="Search by Role Name" disabled />
+                }
+            </div>
+            <div class="col-2">
+                @if (currentResource != null)
+                {
+                    <button class="btn btn-primary"><span class="oi oi-magnifying-glass" /></button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" disabled><span class="oi oi-magnifying-glass" /></button>
+                }
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <hr />
+                @if (rolesLoading)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                <ul class="list-group">
+                    @if (currentResource == null)
+                    {
+                        <em class="text-center text-muted">Select a resource on the left to see available roles</em>
+                    }
+                    else if (roles.Count() == 0 && !rolesLoading && !string.IsNullOrEmpty(roleSearchTerm))
+                    {
+                        <em class="text-center text-muted">No roles found that match filter '@roleSearchTerm'</em>
+                    }
+                    else if (string.IsNullOrEmpty(roleSearchTerm))
+                    {
+                        <em class="text-center text-muted">Search for applicable roles above</em>
+                    }
+                    else if (roles.Count() > 0)
+                    {
+                        var filteredRoles = roles.Where(r => r.Properties.RoleName.Contains(roleSearchTerm, StringComparison.OrdinalIgnoreCase));
+                        @foreach (var role in filteredRoles.Take(10))
+                        {
+                            var isSelected = currentRole != null && role.Id == currentRole.Id;
+                            var _role = role;
+                            <li class="list-group-item list-group-item-action @(isSelected ? "list-group-item-info" : "")" @onclick="() => currentRole = _role">
+                                @role.Properties.RoleName
+                            </li>
+                        }
+                        @if(filteredRoles.Count() > 10)
+                        {
+                            <li class="list-group-item list-group-item-action">...</li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col">
+        <hr />
+        <button class="btn btn-lg btn-secondary" @onclick="Reset">Reset</button>
+        @if (saving)
+        {
+            <button class="btn btn-primary btn-lg float-end" type="button" disabled>
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Saving...
+            </button>
+        }
+        else 
+        {
+            @if (currentRole != null && currentIdentity != null && currentResource != null)
+            {
+                <button class="btn btn-primary btn-lg float-end" @onclick="Submit">Add Role</button>
+            }
+            else
+            {
+                <button class="btn btn-primary btn-lg float-end" disabled>Add Role</button>
+            }
+        }
+    </div>
+</div>
+
+
+@code {
+    [Inject]
+    public RoleRequestorService _api { get; set; }
+    [Inject]
+    private ITokenAcquisition tokenAcquisition { get; set; }
+    [Inject]
+    private IDownstreamWebApi downstreamAPI { get; set; }
+
+
+    public IEnumerable<Subscription> subscriptions { get; set; } = new List<Subscription>();
+    public IEnumerable<Resource> resources { get; set; } = new List<Resource>();
+    public IEnumerable<RoleDefinition> roles { get; set; } = new List<RoleDefinition>();
+    public IEnumerable<ServicePrincipal> identities { get; set; } = new List<ServicePrincipal>();
+
+    public Subscription currentSub { get; set; }
+    public Resource currentResource { get; set; }
+    public RoleDefinition currentRole { get; set; }
+    public ServicePrincipal currentIdentity { get; set; }
+    public string resourceSearchTerm { get; set; } = "";
+    public string roleSearchTerm { get; set; } = "";
+    public string identitySearchTerm { get; set; } = "";
+    public string reasonMessage { get; set; } = "";
+    public bool resourcesLoading { get; set; }
+    public bool rolesLoading { get; set; }
+    public bool identitiesLoading { get; set; }
+    public bool saving { get; set; }
+    public bool? submitSuccess { get; set; } = null;
+
+    [Inject]
+    private MicrosoftIdentityConsentAndConditionalAccessHandler ConsentHandler { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        subscriptions = await _api.GetSubscriptions();
+        currentSub = subscriptions.FirstOrDefault();
+
+        var sps = await _api.SearchPrincipals("SomeCustomApp");
+    }
+
+    public async Task Reset()
+    {
+        resourceSearchTerm = "";
+        roleSearchTerm = "";
+        identitySearchTerm = "";
+        identities = new List<ServicePrincipal>();
+        roles = new List<RoleDefinition>();
+        resources = new List<Resource>();
+        currentRole = null;
+        currentIdentity = null;
+        currentResource = null;
+        submitSuccess = null;
+    }
+
+    public async Task Submit()
+    {
+        saving = true;
+        var result = await _api.CreateRoleAssignment(currentResource.Id, currentIdentity.Id, currentRole.Id);
+        submitSuccess = result.Item1;
+        reasonMessage = result.Item2;
+        saving = false;
+    }
+
+    protected async Task OnIdentitySearch()
+    {
+        identitiesLoading = true;
+        identities = await _api.SearchPrincipals(identitySearchTerm);
+        if (identities.Count() == 1)
+        {
+            currentIdentity = identities.First();
+        }
+        identitiesLoading = false;
+    }
+
+    protected async Task OnResourceSearch()
+    {
+        resourcesLoading = true;
+        resources = await _api.SearchResources(currentSub.SubscriptionId, resourceSearchTerm);
+        if (resources.Count() == 1)
+        {
+            await OnResourceSelected(resources.First());
+        }
+        resourcesLoading = false;
+    }
+    protected async Task OnResourceSelected(Resource resource)
+    {
+        currentResource = resource;
+        roles = await _api.GetRoles(resource.Id);
+    }
+
+}
