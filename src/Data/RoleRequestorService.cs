@@ -53,10 +53,10 @@ public class RoleRequestorService
                 });
                 var nrgDetails = await (await _api.CallWebApiForAppAsync("ResourceManagement",
                     options => options.RelativePath = $"/subscriptions/{subscriptionId}/resourcegroups/{clusterDetails.Properties.NodeResourceGroup}?api-version=2021-04-01")).Content.ReadFromJsonAsync<Resource>();
-                var nrgResources = (await (await _api.CallWebApiForAppAsync("ResourceManagement",
-                    options => options.RelativePath = $"/subscriptions/{subscriptionId}/resourceGroups/{clusterDetails.Properties.NodeResourceGroup}/resources?$filter=name eq '{searchTerm}'&api-version=2021-04-01")).Content.ReadFromJsonAsync<ResourceList>()).Value;
+                //var nrgResources = (await (await _api.CallWebApiForAppAsync("ResourceManagement",
+                //    options => options.RelativePath = $"/subscriptions/{subscriptionId}/resourceGroups/{clusterDetails.Properties.NodeResourceGroup}/resources?$filter=name eq '{searchTerm}'&api-version=2021-04-01")).Content.ReadFromJsonAsync<ResourceList>()).Value;
                 
-                resources.AddRange(nrgResources);
+                resources.Add(nrgDetails);
             }
         }
         var RGs = await _api.CallWebApiForUserAsync("ResourceManagement",
