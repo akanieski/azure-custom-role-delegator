@@ -68,7 +68,7 @@
                     }
                     else if (identities.Count() > 0)
                     {
-                        @foreach (var ide in identities)
+                        @foreach (var ide in identities.Take(10))
                         {
                             var isSelected = currentIdentity != null && ide.Id == currentIdentity.Id;
                             var _ide = ide;
@@ -76,6 +76,10 @@
                                 <b>@ide.DisplayName</b>
                                 <span class="badge bg-light text-secondary rounded-pill float-end">@ide.ServicePrincipalType</span>
                             </li>
+                        }
+                        @if (identities.Count() >= 10 && !identitiesLoading)
+                        {
+                            <li class="list-group-item list-group-item-action">...</li>
                         }
                     }
                 </ul>
@@ -104,13 +108,18 @@
                     </div>
                 }
                 <ul class="list-group">
-                    @foreach (var resource in resources) {
+                    @foreach (var resource in resources.Take(10))
+                    {
                         var r = resource;
                         var isSelected = currentResource != null && r.Id == currentResource.Id;
                         <li class="list-group-item list-group-item-action @(isSelected ? "list-group-item-info" : "")" @onclick="() => OnResourceSelected(r)">                             
                             <b>@resource.Name</b>
                             <span class="badge bg-light text-secondary rounded-pill float-end">@resource.Type.Split('/').First().Split('.').Last()</span>
                         </li>
+                    }
+                    @if (resources.Count() >= 10 && !resourcesLoading)
+                    {
+                        <li class="list-group-item list-group-item-action">...</li>
                     }
                     @if (resources.Count() == 0 && !resourcesLoading)
                     {
