@@ -112,7 +112,7 @@ public class RoleRequestorService
             options.HttpMethod = HttpMethod.Put;
             options.Scopes = "https://management.azure.com/.default";
             options.RelativePath = path;
-        }, new StringContent(JsonSerializer.Serialize(request), new MediaTypeHeaderValue("application/json")));
+        }, new StringContent(JsonSerializer.Serialize(request), System.Text.Encoding.UTF8, "application/json"));
 
         if (result.StatusCode == HttpStatusCode.Created)
         {

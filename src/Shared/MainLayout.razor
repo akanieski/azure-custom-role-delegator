@@ -9,13 +9,13 @@
             <div class="container">
                 <div class="row">
                     <div class="col text-start ms-3">
-                        <b>Resource Group Access Control</b>
+                        <b>Resource Access Control</b>
                     </div>
                     <div class="col text-end me-3">
                         <AuthorizeView>
                             <Authorized>
-                                <span class="oi oi-person me-2"></span> @context.User.Identity.Name!
-                                <a href="MicrosoftIdentity/Account/SignOut"><span class="oi oi-account-logout"></span></a>
+                                <span class="oi oi-person me-2"></span> @context.User.Identity.Name
+                                <a href="MicrosoftIdentity/Account/SignOut" class="ms-3"><span class="oi oi-account-logout"></span></a>
                             </Authorized>
                             <NotAuthorized>
                                 <a href="MicrosoftIdentity/Account/SignIn">Log in</a>
