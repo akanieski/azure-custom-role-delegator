@@ -9,16 +9,16 @@
 <div class="row">
     <div class="col"><h3>Assignment Wizard</h3></div>
     <div class="col">
-        <select class="form-select w-50 float-end">
+        <select class="form-select w-50 float-end" @onchange="(ev) => currentSub = subscriptions.FirstOrDefault(s => s.SubscriptionId.Equals(ev.Value.ToString(), StringComparison.OrdinalIgnoreCase))">
             @foreach (var s in subscriptions)
             {
                 @if (s.SubscriptionId == currentSub?.SubscriptionId)
                 {
-                    <option value="@s.SubscriptionId">@s.DisplayName</option>
+                    <option value="@s.SubscriptionId" selected>@s.DisplayName</option>
                 }
                 else
                 {
-                    <option value="@s.SubscriptionId" selected>@s.DisplayName</option>
+                    <option value="@s.SubscriptionId">@s.DisplayName</option>
                 }
             }
         </select>
