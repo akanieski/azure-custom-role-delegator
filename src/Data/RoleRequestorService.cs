@@ -11,6 +11,7 @@ namespace AzureCustomRoleDelegator.Data;
 public class RoleRequestorServiceSettings
 {
     public string[] BlockedRoles { get; set; } = new string[] { };
+    public bool ExactMatchOnIdentitySearch { get; set; } = true;
 }
 public class RoleRequestorService
 {
@@ -80,10 +81,14 @@ public class RoleRequestorService
     // Find who you want to assign roles to
     public async Task<IEnumerable<ServicePrincipal>> SearchPrincipals(string searchTerm)
     {
-        //$"https://graph.microsoft.com/v1.0/servicePrincipals?$filter=displayName eq '{ServicePrincipalSearchTerm}'"
         var result = await _api.CallWebApiForAppAsync("GraphApi", options =>
         {
-            options.RelativePath = $"/servicePrincipals?$filter=startsWith(displayName, '{searchTerm}')&$top=999";
+            string searchQuery = $"startsWith(displayName, '{searchTerm}')";
+            if (_settings.ExactMatchOnIdentitySearch)
+            {
+                searchQuery = $"displayName eq '{searchTerm}'";
+            }
+            options.RelativePath = $"/servicePrincipals?$filter={searchQuery}&$top=999";
             options.Scopes = "https://graph.microsoft.com/.default";
         });
 
